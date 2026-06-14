@@ -6,14 +6,14 @@ using SmartTshwane.API.Interfaces;
 namespace SmartTshwane.API.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize]
 [Route("api/[controller]")]
-public class CategoriesController : ControllerBase
+public class ServiceRequestsController : ControllerBase
 {
-private readonly ICategoryService _service;
+private readonly IServiceRequestService _service;
 
 
-public CategoriesController(ICategoryService service)
+public ServiceRequestsController(IServiceRequestService service)
 {
     _service = service;
 }
@@ -27,36 +27,36 @@ public async Task<IActionResult> GetAll()
 [HttpGet("{id}")]
 public async Task<IActionResult> GetById(int id)
 {
-    var category = await _service.GetByIdAsync(id);
+    var request = await _service.GetByIdAsync(id);
 
-    if (category == null)
+    if (request == null)
         return NotFound();
 
-    return Ok(category);
+    return Ok(request);
 }
 
 [HttpPost]
-public async Task<IActionResult> Create(CreateCategoryDto dto)
+public async Task<IActionResult> Create(CreateServiceRequestDto dto)
 {
-    var category = await _service.CreateAsync(dto);
+    var request = await _service.CreateAsync(dto);
 
     return CreatedAtAction(
         nameof(GetById),
-        new { id = category.Categoryid },
-        category);
+        new { id = request.Requestid },
+        request);
 }
 
 [HttpPut("{id}")]
 public async Task<IActionResult> Update(
     int id,
-    UpdateCategoryDto dto)
+    UpdateServiceRequestDto dto)
 {
-    var category = await _service.UpdateAsync(id, dto);
+    var request = await _service.UpdateAsync(id, dto);
 
-    if (category == null)
+    if (request == null)
         return NotFound();
 
-    return Ok(category);
+    return Ok(request);
 }
 
 [HttpDelete("{id}")]
@@ -69,6 +69,4 @@ public async Task<IActionResult> Delete(int id)
 
     return NoContent();
 }
-
-
 }
