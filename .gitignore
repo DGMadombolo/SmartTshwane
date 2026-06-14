@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+
+# VS Code
+.vscode/
+
+# Node.js
+node_modules/
+.next/
+
+# Environment
+.env
+
+# Logs
+*.log
