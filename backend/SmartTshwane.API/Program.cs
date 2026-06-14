@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using SmartTshwane.API.Data;
+using SmartTshwane.API.Interfaces;
+using SmartTshwane.API.Repositories;
+using SmartTshwane.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,10 @@ builder.Configuration.GetConnectionString("DefaultConnection")));
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 var app = builder.Build();
 
