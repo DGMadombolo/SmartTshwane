@@ -68,8 +68,10 @@ public class ServiceRequestService : IServiceRequestService
             Address = dto.Address,
             Latitude = dto.Latitude,
             Longitude = dto.Longitude,
-            Createdat = DateTime.UtcNow,
-            Updatedat = DateTime.UtcNow
+
+            // PostgreSQL column is timestamp without time zone
+            Createdat = DateTime.Now,
+            Updatedat = DateTime.Now
         };
 
         var created = await _repository.CreateAsync(request);
@@ -90,7 +92,9 @@ public class ServiceRequestService : IServiceRequestService
         };
     }
 
-    public async Task<ServiceRequestDto?> UpdateAsync(int id, UpdateServiceRequestDto dto)
+    public async Task<ServiceRequestDto?> UpdateAsync(
+        int id,
+        UpdateServiceRequestDto dto)
     {
         var request = new Servicerequest
         {

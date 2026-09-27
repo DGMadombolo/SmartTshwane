@@ -41,7 +41,9 @@ public class ServiceRequestRepository : IServiceRequestRepository
         return request;
     }
 
-    public async Task<Servicerequest?> UpdateAsync(int id, Servicerequest request)
+    public async Task<Servicerequest?> UpdateAsync(
+        int id,
+        Servicerequest request)
     {
         var existing = await _context.Servicerequests
             .FirstOrDefaultAsync(r => r.Requestid == id);
@@ -56,7 +58,9 @@ public class ServiceRequestRepository : IServiceRequestRepository
         existing.Statusid = request.Statusid;
         existing.Latitude = request.Latitude;
         existing.Longitude = request.Longitude;
-        existing.Updatedat = DateTime.UtcNow;
+
+        // PostgreSQL column is timestamp without time zone
+        existing.Updatedat = DateTime.Now;
 
         await _context.SaveChangesAsync();
 

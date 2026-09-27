@@ -1,6 +1,7 @@
 # .NET
 bin/
 obj/
+.vs/
 
 # VS Code
 .vscode/
@@ -11,8 +12,10 @@ node_modules/
 
 # Environment
 .env
+
 # Secrets
 appsettings.Development.json
 .env
+
 # Logs
 *.log
