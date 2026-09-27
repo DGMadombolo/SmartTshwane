@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap");
+@import "tailwindcss";
+
+:root {
+  /* SmartTshwane Design System */
+
+  --color-primary: #004d99;
+  --color-primary-container: #1565c0;
+  --color-on-primary: #ffffff;
+  --color-primary-fixed: #d6e3ff;
+
+  --color-secondary: #1b6d24;
+  --color-secondary-container: #a0f399;
+  --color-on-secondary: #ffffff;
+
+  --color-tertiary: #644a00;
+  --color-tertiary-container: #826100;
+  --color-tertiary-fixed: #ffdf9e;
+
+  --color-background: #f8f9fa;
+  --color-surface: #f8f9fa;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f4f5;
+  --color-surface-container: #edeeef;
+  --color-surface-container-high: #e7e8e9;
+  --color-surface-container-highest: #e1e3e4;
+
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #424752;
+
+  --color-outline: #727783;
+  --color-outline-variant: #c2c6d4;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+
+  --radius-sm: 0.25rem;
+  --radius-default: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --shadow-civic:
+    0 4px 16px rgba(21, 101, 192, 0.08);
+
+  --shadow-civic-hover:
+    0 12px 24px -10px rgba(21, 101, 192, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Material Symbols used by the Stitch design */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga";
+}
+
+/* SmartTshwane hero background */
+.hero-pattern {
+  background-color: #f8f9fa;
+  background-image: radial-gradient(
+    rgba(21, 101, 192, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 32px 32px;
+}
+
+/* Stitch-style service card interaction */
+.service-card-hover {
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.service-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-civic-hover);
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 3px solid rgba(21, 101, 192, 0.35);
+  outline-offset: 2px;
+}

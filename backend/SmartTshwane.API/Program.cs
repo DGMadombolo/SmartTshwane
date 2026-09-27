@@ -78,11 +78,11 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Configure HTTP Request Pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+// Swagger is enabled in both Development and Production
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 // Optional during development
 // app.UseHttpsRedirection();
