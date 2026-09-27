@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -45,6 +46,17 @@ const CATEGORIES = [
   { id: "electricity_outage", label: "Electricity Outage", icon: Zap },
   { id: "other", label: "Other", icon: MoreHorizontal },
 ];
+
+const CATEGORY_IDS: Record<string, number | null> = {
+  potholes: 5,
+  water_leaks: 2,
+  street_lights: 7,
+  waste_refuse: 8,
+  electricity_outage: 6,
+  other: null,
+};
+
+const API_BASE_URL = "http://localhost:5284";
 
 const WATER_ISSUES = [
   {
@@ -102,6 +114,8 @@ function ArrowDownIcon({ className }: { className?: string }) {
 }
 
 export default function ReportForm() {
+  const router = useRouter();
+
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("water_leaks");
 
@@ -124,6 +138,10 @@ export default function ReportForm() {
   const [formError, setFormError] = useState("");
   const [draftSaved, setDraftSaved] = useState(false);
   const [mapZoom, setMapZoom] = useState(1);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState("");
 
   const selectedCategoryDetails = useMemo(
     () => CATEGORIES.find((category) => category.id === selectedCategory),
@@ -209,7 +227,7 @@ export default function ReportForm() {
     );
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError("");
 
@@ -233,7 +251,101 @@ export default function ReportForm() {
       return;
     }
 
-    setShowSuccess(true);
+    const categoryId = CATEGORY_IDS[selectedCategory];
+
+    if (!categoryId) {
+      setFormError(
+        "This category is not connected to the municipal categories yet. Please select another category.",
+      );
+      return;
+    }
+
+    const token =
+      localStorage.getItem("smarttshwane_token") ??
+      sessionStorage.getItem("smarttshwane_token");
+
+    const storedUser =
+      localStorage.getItem("smarttshwane_user") ??
+      sessionStorage.getItem("smarttshwane_user");
+
+    if (!token || !storedUser) {
+      setFormError("Your session has expired. Please log in again.");
+      return;
+    }
+
+    let user: { userId?: number; userid?: number };
+
+    try {
+      user = JSON.parse(storedUser);
+    } catch {
+      setFormError("Your login session is invalid. Please log in again.");
+      return;
+    }
+
+    const userId = user.userId ?? user.userid;
+
+    if (!userId) {
+      setFormError("We could not determine your account. Please log in again.");
+      return;
+    }
+
+    const classification = selectedIssueDetails?.title
+      ? `Issue classification: ${selectedIssueDetails.title}`
+      : `Issue category: ${selectedCategoryDetails?.label ?? "Other"}`;
+
+    const requestBody = {
+      userid: userId,
+      categoryid: categoryId,
+      title: issueTitle.trim(),
+      description:
+        `${description.trim()}\n\n${classification}\nSeverity: ${severity}`,
+      address: location.trim(),
+      latitude,
+      longitude,
+    };
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ServiceRequests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        setFormError("Your session is no longer authorised. Please log in again.");
+        return;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Service request submission failed:", errorText);
+        setFormError(
+          "We could not submit your report. Please check your details and try again.",
+        );
+        return;
+      }
+
+      const createdRequest = await response.json();
+      const requestId =
+        createdRequest.requestid ??
+        createdRequest.requestId ??
+        createdRequest.id;
+
+      setReferenceNumber(requestId ? `#TSH-${requestId}` : "#TSH-PENDING");
+      setShowSuccess(true);
+    } catch (error) {
+      console.error("Service request submission error:", error);
+      setFormError(
+        "We could not connect to the SmartTshwane server. Make sure the backend is running and try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const saveDraft = () => {
@@ -266,6 +378,8 @@ export default function ReportForm() {
 
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        setLatitude(coords.latitude);
+        setLongitude(coords.longitude);
         setLocation(
           `Current location (${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)})`,
         );
@@ -858,7 +972,11 @@ export default function ReportForm() {
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--color-outline)]" />
                 <input
                   value={location}
-                  onChange={(event) => setLocation(event.target.value)}
+                  onChange={(event) => {
+                      setLocation(event.target.value);
+                      setLatitude(null);
+                      setLongitude(null);
+                    }}
                   type="text"
                   placeholder="Enter street address or landmark"
                   className="w-full rounded-xl border border-[var(--color-outline-variant)] bg-white py-3 pl-12 pr-4 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
@@ -1053,10 +1171,15 @@ export default function ReportForm() {
 
                 <button
                   type="submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-secondary)] px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-95 hover:shadow-lg active:scale-95 sm:w-auto"
+                  disabled={isSubmitting}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-secondary)] px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-95 hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
-                  Submit Report
-                  <Send className="h-4 w-4" />
+                  {isSubmitting ? "Submitting..." : "Submit Report"}
+                  {isSubmitting ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </form>
@@ -1106,14 +1229,21 @@ export default function ReportForm() {
             <p className="mb-8 text-base leading-6 text-[var(--color-on-surface-variant)]">
               Thank you for reporting this issue. Your reference number is{" "}
               <span className="font-bold text-[var(--color-primary)]">
-                #TSH-49201
+                {referenceNumber}
               </span>
               . We will notify you once a technician has been dispatched.
             </p>
 
             <button
               type="button"
-              onClick={() => setShowSuccess(false)}
+              onClick={() => {
+                if (referenceNumber.startsWith("#TSH-")) {
+                  const requestId = referenceNumber.replace("#TSH-", "");
+                  router.push(`/track-status?requestId=${encodeURIComponent(requestId)}`);
+                } else {
+                  router.push("/track-status");
+                }
+              }}
               className="w-full rounded-lg bg-[var(--color-primary)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-container)]"
             >
               Track This Issue

@@ -675,7 +675,7 @@ export default function RegisterPage() {
           </p>
 
           <p className="mt-2 text-xs text-[#424752]">
-            © 2024 City of Tshwane. All rights reserved.
+            © 2026 City of Tshwane. All rights reserved.
           </p>
         </div>
 

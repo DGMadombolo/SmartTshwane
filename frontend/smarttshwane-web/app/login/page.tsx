@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const API_BASE_URL = "http://localhost:5284";
 
@@ -27,6 +28,8 @@ interface LoginResponse {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -107,11 +110,8 @@ export default function LoginPage() {
         `Welcome back, ${loginData.firstname}. You have been successfully signed in.`,
       );
 
-      /*
-       * We will add the redirect to the authenticated
-       * dashboard/report flow after we finish the
-       * backend authentication integration.
-       */
+      // Redirect to the citizen dashboard after successful login.
+      router.push("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
 
@@ -421,7 +421,7 @@ export default function LoginPage() {
           </p>
 
           <p className="mt-2 text-xs text-[#424752]">
-            © 2024 City of Tshwane. All rights reserved.
+            © 2026 City of Tshwane. All rights reserved.
           </p>
         </div>
 

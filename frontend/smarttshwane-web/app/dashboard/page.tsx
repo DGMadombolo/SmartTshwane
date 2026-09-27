@@ -130,7 +130,7 @@ export default function DashboardPage() {
             </Link>
 
             <Link
-              href="/track-status"
+              href="/track"
               className="text-sm font-semibold text-[#004d99]"
             >
               Track Status
@@ -392,8 +392,8 @@ export default function DashboardPage() {
                   <ChevronRight size={19} />
                 </Link>
 
-                <button
-                  type="button"
+                <Link
+                  href="/profile"
                   className="flex items-center justify-between rounded-lg bg-white p-4 text-[#004d99] shadow-sm transition hover:bg-[#f8f9fa]"
                 >
                   <div className="flex items-center gap-3">
@@ -404,7 +404,7 @@ export default function DashboardPage() {
                   </div>
 
                   <ChevronRight size={19} />
-                </button>
+                </Link>
 
                 <button
                   type="button"
@@ -564,7 +564,7 @@ export default function DashboardPage() {
             </p>
 
             <p className="mt-3 text-sm text-[#424752]">
-              © 2024 City of Tshwane. All rights reserved.
+              © 2026 City of Tshwane. All rights reserved.
             </p>
           </div>
 

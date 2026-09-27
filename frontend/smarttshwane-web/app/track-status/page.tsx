@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -39,6 +40,8 @@ interface ServiceRequest {
     completed: boolean;
   }[];
 }
+
+const API_BASE_URL = "http://localhost:5284";
 
 const REQUESTS: ServiceRequest[] = [
   {
@@ -204,14 +207,162 @@ function getIconClasses(request: ServiceRequest) {
 }
 
 export default function TrackStatusPage() {
+  const searchParams = useSearchParams();
+  const requestedId = searchParams.get("requestId");
+
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | Status>("All");
-  const [selectedRequest, setSelectedRequest] =
-    useState<ServiceRequest>(REQUESTS[1]);
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRequests = async () => {
+      setIsLoading(true);
+      setLoadError("");
+
+      const token =
+        localStorage.getItem("smarttshwane_token") ??
+        sessionStorage.getItem("smarttshwane_token");
+
+      if (!token) {
+        setLoadError("Your session has expired. Please log in again.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/ServiceRequests`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Your session is no longer authorised. Please log in again.");
+        }
+
+        if (!response.ok) {
+          throw new Error("Could not load your service requests.");
+        }
+
+        const data = await response.json();
+
+        const mappedRequests: ServiceRequest[] = (Array.isArray(data) ? data : [])
+          .map((request: any) => {
+            const rawStatus = String(
+              request.status?.statusname ??
+                request.statusname ??
+                request.status ??
+                "Pending",
+            ).toLowerCase();
+
+            const status: Status = rawStatus.includes("progress")
+              ? "In Progress"
+              : rawStatus.includes("resolved") || rawStatus.includes("complete")
+                ? "Resolved"
+                : "Pending";
+
+            const categoryName = String(
+              request.category?.categoryname ??
+                request.categoryname ??
+                "Municipal Service",
+            );
+
+            const categoryLower = categoryName.toLowerCase();
+
+            const icon: ServiceRequest["icon"] = categoryLower.includes("water")
+              ? "water"
+              : categoryLower.includes("electric")
+                ? "electricity"
+                : categoryLower.includes("waste") || categoryLower.includes("refuse")
+                  ? "waste"
+                  : "road";
+
+            const requestId = request.requestid ?? request.requestId ?? request.id;
+            const createdAt = request.createdat ?? request.createdAt;
+
+            const reportedDate = createdAt
+              ? new Date(createdAt).toLocaleString("en-ZA", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })
+              : "Date not available";
+
+            return {
+              id: `#TSH-${requestId}`,
+              title: request.title ?? "Municipal Service Request",
+              category: categoryName,
+              location: request.address ?? "Location not provided",
+              reported: `Reported on ${reportedDate}`,
+              status,
+              description:
+                request.description ?? "No description was provided for this service request.",
+              icon,
+              timeline: [
+                {
+                  date: reportedDate,
+                  title: "Report Received",
+                  description:
+                    "Your service request was successfully received by the City of Tshwane.",
+                  completed: true,
+                },
+              ],
+            };
+          })
+          .sort((a, b) => {
+            const aNumber = Number(a.id.replace(/\D/g, ""));
+            const bNumber = Number(b.id.replace(/\D/g, ""));
+            return bNumber - aNumber;
+          });
+
+        if (cancelled) return;
+
+        setRequests(mappedRequests);
+
+        if (requestedId) {
+          const requestedReference = `#TSH-${requestedId}`.toLowerCase();
+          const matchingRequest = mappedRequests.find(
+            (request) => request.id.toLowerCase() === requestedReference,
+          );
+
+          if (matchingRequest) {
+            setSelectedRequest(matchingRequest);
+            setSearch(matchingRequest.id);
+            return;
+          }
+        }
+
+        setSelectedRequest(mappedRequests[0] ?? null);
+      } catch (error) {
+        if (cancelled) return;
+
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Could not load your service requests.",
+        );
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadRequests();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestedId]);
 
   const filteredRequests = useMemo(() => {
-    return REQUESTS.filter((request) => {
+    return requests.filter((request) => {
       const searchValue = search.toLowerCase().trim();
 
       const matchesSearch =
@@ -225,7 +376,21 @@ export default function TrackStatusPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [search, statusFilter]);
+  }, [requests, search, statusFilter]);
+
+  useEffect(() => {
+    if (!selectedRequest && filteredRequests.length > 0) {
+      setSelectedRequest(filteredRequests[0]);
+      return;
+    }
+
+    if (
+      selectedRequest &&
+      !filteredRequests.some((request) => request.id === selectedRequest.id)
+    ) {
+      setSelectedRequest(filteredRequests[0] ?? null);
+    }
+  }, [filteredRequests, selectedRequest]);
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-[#191c1d]">
@@ -392,7 +557,25 @@ export default function TrackStatusPage() {
 
             {/* Request list */}
             <div className="mt-4 space-y-3">
-              {filteredRequests.length === 0 ? (
+              {isLoading ? (
+                <div className="rounded-xl border border-[#c2c6d4] bg-white p-8 text-center">
+                  <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[#004d99] border-t-transparent" />
+                  <h2 className="font-semibold text-[#191c1d]">
+                    Loading your service requests...
+                  </h2>
+                </div>
+              ) : loadError ? (
+                <div className="rounded-xl border border-[#ffdad6] bg-white p-8 text-center">
+                  <FileText
+                    size={36}
+                    className="mx-auto mb-3 text-[#ba1a1a]"
+                  />
+                  <h2 className="font-semibold text-[#191c1d]">
+                    Unable to load service requests
+                  </h2>
+                  <p className="mt-1 text-sm text-[#424752]">{loadError}</p>
+                </div>
+              ) : filteredRequests.length === 0 ? (
                 <div className="rounded-xl border border-[#c2c6d4] bg-white p-8 text-center">
                   <FileText
                     size={36}
@@ -467,6 +650,20 @@ export default function TrackStatusPage() {
               RIGHT - DETAIL
           ===================================================== */}
           <aside className="lg:col-span-5">
+            {!selectedRequest ? (
+              <section className="rounded-xl border border-[#c2c6d4] bg-white p-8 text-center shadow-md">
+                <FileText
+                  size={40}
+                  className="mx-auto mb-3 text-[#727783]"
+                />
+                <h2 className="font-semibold text-[#191c1d]">
+                  Select a service request
+                </h2>
+                <p className="mt-1 text-sm text-[#424752]">
+                  Your request details will appear here.
+                </p>
+              </section>
+            ) : (
             <section className="overflow-hidden rounded-xl border border-[#c2c6d4] bg-white shadow-md">
               {/* Detail header */}
               <div className="border-b border-[#e1e3e4] p-5">
@@ -563,6 +760,7 @@ export default function TrackStatusPage() {
                 </button>
               </div>
             </section>
+            )}
           </aside>
         </div>
       </main>

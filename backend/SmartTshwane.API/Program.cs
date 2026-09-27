@@ -13,6 +13,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Controllers
 builder.Services.AddControllers();
 
+// CORS - Allow Next.js frontend to communicate with the API
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SmartTshwaneFrontend", policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "http://192.168.0.160:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // PostgreSQL Database Connection
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
@@ -83,9 +98,8 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
-// Optional during development
-// app.UseHttpsRedirection();
+// Enable CORS before authentication and authorization
+app.UseCors("SmartTshwaneFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
